@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      "assets/*": ["assets/*"],
+      "components/*": ["components/*"],
+      "features/*": ["features/*"],
+      "services/*": ["services/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

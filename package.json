@@ -1,0 +1,44 @@
+{
+  "name": "rtr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.0.2",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-navigation/bottom-tabs": "^7.3.10",
+    "@react-navigation/native": "^7.1.6",
+    "@react-navigation/native-stack": "^7.3.10",
+    "@rnmapbox/maps": "^10.1.38",
+    "@supabase/supabase-js": "^2.49.1",
+    "dayjs": "^1.11.13",
+    "expo": "~52.0.42",
+    "expo-dev-client": "~5.0.19",
+    "expo-image-picker": "~16.0.6",
+    "expo-location": "~18.0.10",
+    "expo-secure-store": "~14.0.1",
+    "expo-status-bar": "~2.0.1",
+    "nativewind": "^4.1.23",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-dotenv": "^3.4.11",
+    "react-native-reanimated": "~3.16.1",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-svg": "15.8.0",
+    "expo-splash-screen": "~0.29.22"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@expo/config-plugins": "~9.0.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  },
+  "private": true
+}
