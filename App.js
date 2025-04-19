@@ -1,9 +1,10 @@
+// App.js
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { supabase } from './services/supabase';
-import AppNavigator from './navigation/AppNavigator';
+import { View, StyleSheet }               from 'react-native';
+import { NavigationContainer }            from '@react-navigation/native';
+import { SafeAreaProvider }               from 'react-native-safe-area-context';
+import { supabase }                       from './services/supabase';
+import AppNavigator                       from './navigation/AppNavigator';
 import "./global.css";
 
 export default function App() {
@@ -12,34 +13,49 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('🔍 Checking auth session...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-        }
-
-        if (!session || !session.user) {
-          console.log('🚪 No active session. Routing to Login.');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[Init] session:', !!session);
+        if (!session) {
           setInitialRoute('Login');
           return;
         }
 
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !userData?.user?.id) {
-          console.warn('⚠️ Invalid or missing user. Logging out.');
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('[Init] user id:', user?.id);
+        if (!user) {
           await supabase.auth.signOut();
           setInitialRoute('Login');
           return;
         }
 
-        console.log(`✅ User authenticated: ${userData.user.id}`);
-        setInitialRoute('MainTabs');
+        const { data: application } = await supabase
+          .from('applications')
+          .select('status')
+          .eq('preserver_id', user.id)
+          .maybeSingle();
+        console.log('[Init] application:', application);
+        if (!application) {
+          setInitialRoute('PreserverApplication');
+          return;
+        }
+        if (application.status !== 'approved') {
+          setInitialRoute('PendingApproval');
+          return;
+        }
 
+        const { data: preserver } = await supabase
+          .from('preservers')
+          .select('clearance')
+          .eq('id', user.id)
+          .maybeSingle();
+        console.log('[Init] preserver.clearance:', preserver?.clearance);
+        setInitialRoute(
+          preserver?.clearance === true
+            ? 'MainTabs'
+            : 'PendingApproval'
+        );
       } catch (err) {
-        console.error('💥 Unexpected initialization error:', err);
-        await supabase.auth.signOut();
+        console.error('Init error:', err);
         setInitialRoute('Login');
       }
     };
@@ -61,8 +77,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    backgroundColor: '#0a1a2f',
-  },
+  placeholder: { flex: 1, backgroundColor: '#0a1a2f' },
 });

@@ -1,3 +1,5 @@
+// features/profile/ProfileScreen.js
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -16,12 +18,12 @@ import { fetchUserDetails } from './dashboardService';
 
 export default function ProfileScreen({ navigation }) {
   const [userDetails, setUserDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [uploading, setUploading]   = useState(false);
+  const [error, setError]           = useState(null);
 
   useEffect(() => {
-    async function loadUser() {
+    (async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No user found.');
@@ -33,8 +35,7 @@ export default function ProfileScreen({ navigation }) {
       } finally {
         setLoading(false);
       }
-    }
-    loadUser();
+    })();
   }, []);
 
   async function handlePickImage() {
@@ -51,8 +52,6 @@ export default function ProfileScreen({ navigation }) {
     });
     if (!result.canceled && result.assets?.length > 0) {
       await uploadImage(result.assets[0].uri);
-    } else {
-      Alert.alert('No image selected');
     }
   }
 
@@ -64,11 +63,10 @@ export default function ProfileScreen({ navigation }) {
       const fileExt = uri.split('.').pop();
       const fileName = `${userDetails.id}-${Date.now()}.${fileExt}`;
 
-      const { data, error: uploadError } = await supabase
+      const { error: uploadError } = await supabase
         .storage
         .from('profile-images')
         .upload(fileName, blob, { cacheControl: '3600', upsert: true });
-
       if (uploadError) throw uploadError;
 
       const { publicURL, error: urlError } = supabase
@@ -84,7 +82,7 @@ export default function ProfileScreen({ navigation }) {
       if (updateError) throw updateError;
 
       setUserDetails(prev => ({ ...prev, profile_picture: publicURL }));
-      Alert.alert('Success', 'Profile image updated successfully.');
+      Alert.alert('Success', 'Profile picture updated successfully.');
     } catch (err) {
       console.error('Error uploading image:', err);
       Alert.alert('Upload error', err.message || 'Failed to upload image.');
@@ -117,25 +115,29 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.profileImageWrapper}>
+      {/* Avatar + Update Profile Picture */}
+      <View style={styles.avatarContainer}>
         {profileImageUri ? (
-          <Image source={{ uri: profileImageUri }} style={styles.profileImage} />
+          <Image source={{ uri: profileImageUri }} style={styles.avatar} />
         ) : (
-          <View style={styles.defaultIconContainer}>
+          <View style={styles.avatarPlaceholder}>
             <Ionicons name="person" size={80} color="#ccc" />
           </View>
         )}
-        <Pressable style={styles.uploadButton} onPress={handlePickImage}>
+
+        <Pressable style={styles.updatePicBtn} onPress={handlePickImage}>
           {uploading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.uploadButtonText}>Edit</Text>
+            <Text style={styles.updatePicTxt}>Update Profile Picture</Text>
           )}
         </Pressable>
       </View>
 
-      <Text style={styles.userTypeText}>{userDetails.user_type || 'User'}</Text>
+      {/* Role */}
+      <Text style={styles.roleText}>{userDetails.user_type || 'User'}</Text>
 
+      {/* Phone */}
       <View style={styles.card}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Phone:</Text>
@@ -143,6 +145,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
+      {/* Details */}
       <View style={[styles.card, styles.detailsCard]}>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Name:</Text>
@@ -150,7 +153,13 @@ export default function ProfileScreen({ navigation }) {
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Email:</Text>
-          <Text style={styles.value}>{userDetails.email}</Text>
+          <Text
+            style={[styles.value, { flexShrink: 1 }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {userDetails.email}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Joined:</Text>
@@ -158,12 +167,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      <Pressable
-        style={[styles.uploadButton, { marginTop: 10, paddingVertical: 8, paddingHorizontal: 20 }]}
-        onPress={() => Alert.alert('Edit Profile Coming Soon')}
-      >
-        <Text style={styles.uploadButtonText}>Edit Profile</Text>
-      </Pressable>
+      {/* (Optional) additional profile actions below… */}
     </SafeAreaView>
   );
 }
@@ -172,8 +176,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingTop: 20,
     alignItems: 'center',
   },
   centered: {
@@ -185,18 +187,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'red',
   },
-  profileImageWrapper: {
+
+  avatarContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginTop: 24,
   },
-  profileImage: {
+  avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 2,
     borderColor: '#10B981',
   },
-  defaultIconContainer: {
+  avatarPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
@@ -205,31 +208,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  uploadButton: {
+  updatePicBtn: {
+    marginTop: 12,
     backgroundColor: '#10B981',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    alignSelf: 'center',
   },
-  uploadButtonText: {
+  updatePicTxt: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  userTypeText: {
+
+  roleText: {
     fontSize: 16,
     color: 'grey',
-    marginBottom: 20,
     textAlign: 'center',
+    marginVertical: 16,
   },
+
   card: {
-    width: '100%',
+    width: '90%',
     backgroundColor: '#fff',
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -237,24 +241,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   detailsCard: {},
+
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginVertical: 8,
   },
   label: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    flex: 1,
-    textAlign: 'left',
+    fontSize: 18,
+    fontWeight: '600',
   },
   value: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    flex: 1,
-    textAlign: 'right',
+    fontSize: 18,
+    fontWeight: '500',
   },
 });

@@ -1,29 +1,31 @@
+// features/profile/dashboardService.js
+
 import { supabase } from '../../services/supabase';
 
 /**
- * Fetches user details for the given user ID from the "users" table.
- *
- * @param {string} userId - The Supabase user ID.
- * @returns {Promise<Object>} - An object containing user details (e.g., first_name, last_name, etc.).
- *
- * @throws Will throw an error if the data cannot be retrieved.
+ * Fetches the profile details for a given user ID from the "users" table.
+ * @param {string} userId
+ * @returns {Promise<Object>} { id, first_name, last_name, email, phone_number, profile_picture, user_type, created_at }
  */
 export async function fetchUserDetails(userId) {
   const { data, error } = await supabase
-    .from('preservers')
-    .select('*')
+    .from('users')
+    .select(`
+      id,
+      first_name,
+      last_name,
+      email,
+      phone_number,
+      profile_picture,
+      user_type,
+      created_at
+    `)
     .eq('id', userId)
-    .maybeSingle(); // Avoids crash when no row is found
+    .single();
 
   if (error) {
-    console.error('❌ Error fetching preserver details:', error.message);
-    return null;
+    console.error('❌ Error fetching user details:', error);
+    throw error;
   }
-
-  if (!data) {
-    console.warn('⚠️ No preserver profile found for this user.');
-    return null;
-  }
-
   return data;
 }
