@@ -1,18 +1,17 @@
-// app.config.js
 export default ({ config }) => ({
   expo: {
     ...config,
     name: "rtr",
     slug: "rtr",
     version: "1.0.0",
+    sdkVersion: "52.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
     splash: {
-      image: "./assets/transparent.png", // Optional: a transparent image
+      image: "./assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#0a1a2f", // Match your loading screen background
+      backgroundColor: "#ffffff",
     },
     ios: {
       supportsTablet: true,
@@ -21,12 +20,9 @@ export default ({ config }) => ({
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#0a1a2f", // Also match here
+        backgroundColor: "#ffffff",
       },
       package: "com.wcathey.rtr",
-    },
-    web: {
-      bundler: "metro",
     },
     plugins: [
       "expo-secure-store",
@@ -36,6 +32,13 @@ export default ({ config }) => ({
           RNMapboxMapsDownloadToken: process.env.PUBLIC_MAPBOX_ACCESS_TOKEN || "sk.ey...",
         },
       ],
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission: "Show current location on map.",
+        },
+      ],
+      "expo-dev-client", // Add the expo-dev-client plugin
     ],
     extra: {
       PUBLIC_MAPBOX_ACCESS_TOKEN: process.env.PUBLIC_MAPBOX_ACCESS_TOKEN,

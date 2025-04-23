@@ -3,9 +3,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons }                 from '@expo/vector-icons';
 import CustomHeader                 from '../components/CustomHeader';
-
+import AssignmentsStack from './AssignmentsStack';
 import MapScreen         from '../features/map/MapScreen';
-import AssignmentsScreen from '../features/assignments/AssignmentsScreen';
 import EarningsScreen    from '../features/earnings/EarningsScreen';
 import SettingsScreen    from '../features/settings/SettingsScreen';
 import ProfileScreen     from '../features/profile/ProfileScreen';
@@ -16,7 +15,6 @@ export default function PreserverTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
         tabBarStyle: { backgroundColor: '#000433', borderTopWidth: 0 },
         tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: '#aaa',
@@ -36,12 +34,12 @@ export default function PreserverTabs() {
       <Tab.Screen
         name="Map"
         component={MapScreen}
-        options={{ header: () => <CustomHeader title="Find A Preserver" /> }}
+        options={{ headerShown: false }}
       />
-      <Tab.Screen
+       <Tab.Screen
         name="Assignments"
-        component={AssignmentsScreen}
-        options={{ header: () => <CustomHeader title="Assignments" /> }}
+        component={AssignmentsStack}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Earnings"
@@ -56,7 +54,7 @@ export default function PreserverTabs() {
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ header: () => <CustomHeader title="Profile" /> }}
+        options={{ headerShown: false }}
       />
     </Tab.Navigator>
   );

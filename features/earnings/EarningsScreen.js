@@ -4,182 +4,215 @@ import {
   View,
   Text,
   StyleSheet,
-  SectionList,
+  ScrollView,
   ActivityIndicator,
   SafeAreaView,
+  Dimensions,
+  TouchableOpacity,
 } from 'react-native';
-import { getEarnings } from './earningsService';
+import { BarChart } from 'react-native-chart-kit';
 import dayjs from 'dayjs';
+import { getEarnings } from './earningsService';
+
+const screenWidth = Dimensions.get('window').width - 32; // account for padding
 
 export default function EarningsScreen() {
-  const [loading, setLoading]   = useState(true);
-  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [earnings, setEarnings] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const earnings = await getEarnings();
-        const byMonth = earnings.reduce((acc, e) => {
-          const month = dayjs(e.date).format('MMMM');
-          (acc[month] = acc[month] || []).push(e);
-          return acc;
-        }, {});
-
-        const secs = Object.entries(byMonth).map(([title, data]) => ({
-          title,
-          data,
-        }));
-        setSections(secs);
+        const data = await getEarnings();
+        setEarnings(data);
       } catch (err) {
-        console.error('Error loading earnings', err);
+        console.error('Failed to load earnings:', err);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // total balance
-  const balance = sections
-    .flatMap((s) => s.data)
-    .reduce((sum, e) => sum + e.total, 0);
-
-  // next Tuesday calculation
-  let nextTuesday = null;
-  if (balance > 0) {
-    const today = dayjs();
-    const dow   = today.day();            // Sunday=0, Monday=1, Tuesday=2...
-    let daysAhead = (2 - dow + 7) % 7;    // how many days until Tuesday
-    if (daysAhead === 0) daysAhead = 7;   // if today is Tuesday, schedule next week
-    nextTuesday = today.add(daysAhead, 'day');
-  }
-
   if (loading) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#000433" />
+        </View>
       </SafeAreaView>
     );
   }
 
+  // Totals
+  const balance = earnings.reduce((sum, e) => sum + e.total, 0);
+  const base = earnings.reduce((sum, e) => sum + e.base, 0);
+  const tips = earnings.reduce((sum, e) => sum + e.tips, 0);
+  const totalAssignments = earnings.length;
+
+  // Hours worked
+  let totalSeconds = 0;
+  earnings.forEach(e => {
+    if (e.start && e.end) {
+      totalSeconds += (new Date(e.end) - new Date(e.start)) / 1000;
+    }
+  });
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  // Bar chart data: sum by weekday
+  const weekdayTotals = [0,0,0,0,0,0,0]; // Sun=0 ... Sat=6
+  earnings.forEach(e => {
+    const w = dayjs(e.date).day();
+    weekdayTotals[w] += e.total;
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.balanceLabel}>Current balance</Text>
-        <Text style={styles.balance}>${balance.toFixed(2)}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Top Wallet Balance Card */}
+        <View style={styles.balanceCard}>
+          <View>
+            <Text style={styles.balanceLabel}>Wallet Balance</Text>
+            <Text style={styles.balanceValue}>${balance.toFixed(2)}</Text>
+          </View>
+          <TouchableOpacity style={styles.withdrawButton}>
+            <Text style={styles.withdrawText}>WITHDRAW</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* only show if there’s money to pay */}
-        {balance > 0 && nextTuesday && (
-          <Text style={styles.nextPay}>
-            Payment scheduled for {nextTuesday.format('ddd, MMM D')}
-          </Text>
-        )}
-      </View>
+        {/* Weekly Earnings Bar Chart */}
+        <View style={styles.chartCard}>
+          <Text style={styles.dateRange}>This Week</Text>
+          <BarChart
+            data={{
+              labels: ['S','M','T','W','T','F','S'],
+              datasets: [{ data: weekdayTotals }]
+            }}
+            width={screenWidth}
+            height={180}
+            fromZero
+            chartConfig={{
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#ffffff',
+              decimalPlaces: 0,
+              color: opacity => `rgba(59, 130, 246, ${opacity})`,
+              labelColor: () => '#374151',
+              style: { borderRadius: 12 },
+              propsForBackgroundLines: { stroke: '#E5E7EB', strokeDasharray: '' }
+            }}
+            style={{ marginVertical: 8, borderRadius: 12 }}
+          />
 
-      {/* Earnings List */}
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={styles.monthHeader}>{title}</Text>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={styles.itemLeft}>
-              <Text style={styles.itemDate}>
-                {dayjs(item.date).format('ddd, MMM D')}
-              </Text>
-              <Text style={styles.itemTime}>
-                {item.start} – {item.end}
-              </Text>
+          {/* Stats row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{totalAssignments}</Text>
+              <Text style={styles.statLabel}>Assignments</Text>
             </View>
-            <View style={styles.itemRight}>
-              <Text style={styles.itemTotal}>
-                ${item.total.toFixed(2)}
-              </Text>
-              <Text style={styles.itemBreakdown}>
-                Base: ${item.base.toFixed(2)}  |  Tips: ${item.tips.toFixed(2)}
-              </Text>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{hours}h {minutes}m</Text>
+              <Text style={styles.statLabel}>Hours Worked</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>—</Text>
+              <Text style={styles.statLabel}>Records Scanned</Text>
             </View>
           </View>
-        )}
-        contentContainerStyle={styles.listContent}
-      />
+        </View>
+
+        {/* Assignment Earnings Breakdown */}
+        <View style={styles.breakdown}>
+          <Text style={styles.breakdownTitle}>Assignment Earnings</Text>
+          <Text style={styles.breakdownItem}>
+            Base Earnings: <Text style={styles.amount}>${base.toFixed(2)}</Text>
+          </Text>
+          <Text style={styles.breakdownItem}>
+            Tips: <Text style={styles.amount}>${tips.toFixed(2)}</Text>
+          </Text>
+          <View style={styles.separator} />
+          <Text style={[styles.breakdownItem, styles.totalLine]}>
+            Total: <Text style={styles.amount}>${(base + tips).toFixed(2)}</Text>
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#F9FAFB' },
-  centered:     { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  scrollContent: { padding: 16 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  header: {
-    padding: 16,
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  balance: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginVertical: 8,
-  },
-  nextPay: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-
-  monthHeader: {
-    fontSize: 18,
-    fontWeight: '600',
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    color: '#111827',
-  },
-
-  listContent: {
-    paddingBottom: 32,
-  },
-  item: {
+  balanceCard: {
+    backgroundColor: '#000433',
+    borderRadius: 12,
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  balanceLabel: { color: '#cbd5e1', fontSize: 14 },
+  balanceValue: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
+  withdrawButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFF',
+    borderRadius: 8,
   },
-  itemLeft: {
-    flex: 1,
-  },
-  itemDate: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  itemTime: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-  },
+  withdrawText: { color: '#fff', fontWeight: '600' },
 
-  itemRight: {
-    flex: 1,
-    alignItems: 'flex-end',
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  itemTotal: {
-    fontSize: 16,
-    fontWeight: '600',
+  dateRange: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  statBox: { alignItems: 'center', flex: 1 },
+  statValue: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  statLabel: { fontSize: 12, color: '#6B7280', textAlign: 'center' },
+
+  breakdown: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  breakdownTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
     color: '#111827',
   },
-  itemBreakdown: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
+  breakdownItem: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#111827',
+  },
+  amount: { fontWeight: '600' },
+  totalLine: { fontSize: 18, fontWeight: '700', marginTop: 8 },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginVertical: 8,
   },
 });

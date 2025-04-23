@@ -16,6 +16,7 @@ export async function getOpenAssignments() {
       end_time,
       created_at,
       status,
+      location_id,
       location:locations (
         id,
         latitude,
@@ -36,6 +37,7 @@ export async function getOpenAssignments() {
   }
   return data || [];
 }
+
 
 /**
  * Fetch open assignments within a given radius (in miles) of the user's location.

@@ -1,32 +1,64 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  StatusBar,
+  TouchableOpacity,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function CustomHeader({ title }) {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const noBackOn = ['AssignmentsMain', 'Map', 'Earnings', 'Settings', 'Profile'];
+  const showBackButton = !noBackOn.includes(route.name);
+
   return (
-    <View style={styles.headerContainer}>
-      <Text style={styles.headerText}>{title}</Text>
+    <View style={styles.outer}>
+      <View style={styles.inner}>
+        <View style={styles.row}>
+          {showBackButton && (
+            <TouchableOpacity onPress={navigation.goBack} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title}>{title}</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
+const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
+const HEADER_HEIGHT = 56; // visible height of header excluding status bar
+
 const styles = StyleSheet.create({
-  headerContainer: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 16,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#1e3a8a',
-    borderBottomWidth: Platform.OS === 'ios' ? 0 : 1,
-    borderBottomColor: '#ccc',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+  outer: {
+    backgroundColor: '#000433',
+    paddingTop: STATUS_BAR_HEIGHT, // adds space for Android status bar
   },
-  headerText: {
-    fontSize: 26,
+  inner: {
+    height: HEADER_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderBottomColor: '#1a1a1a',
+    borderBottomWidth: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 8,
+    padding: 4,
+  },
+  title: {
+    fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
-    textAlign: 'left',
+    color: '#fff',
   },
 });
