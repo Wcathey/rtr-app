@@ -31,15 +31,15 @@ const WEEKDAYS = [
 ];
 
 export default function AssignmentsScreen({ navigation }) {
-  const [allSections, setAllSections]     = useState([]);   // grouped full data
-  const [sections, setSections]           = useState([]);   // what we render
-  const [loading, setLoading]             = useState(true);
+  const [allSections, setAllSections] = useState([]);   // grouped full data
+  const [sections, setSections] = useState([]);   // what we render
+  const [loading, setLoading] = useState(true);
 
   // which days are _really_ applied
-  const [appliedDays, setAppliedDays]     = useState([]);
+  const [appliedDays, setAppliedDays] = useState([]);
 
   // UI temp state in the overlay
-  const [tempDays, setTempDays]           = useState([]);
+  const [tempDays, setTempDays] = useState([]);
 
   const [filterVisible, setFilterVisible] = useState(false);
 

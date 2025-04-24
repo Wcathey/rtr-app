@@ -66,3 +66,33 @@ export async function createLocation({ address, optional_address_ext = null, cit
     throw err;
   }
 }
+
+
+/**
+ * Get driving distance (miles) and duration (minutes) between two points.
+ * @param {number} lat1
+ * @param {number} lon1
+ * @param {number} lat2
+ * @param {number} lon2
+ * @returns {Promise<{distance_miles: number, duration_min: number}>}
+ */
+export async function getDrivingRoute(lat1, lon1, lat2, lon2) {
+  const url = [
+    `https://api.mapbox.com/directions/v5/mapbox/driving/`,
+    `${lon1},${lat1};${lon2},${lat2}`,
+    `?access_token=${PUBLIC_MAPBOX_ACCESS_TOKEN}`,
+    `&overview=false&geometries=polyline&annotations=distance,duration`
+  ].join('');
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Directions API error ${res.status}`);
+  const json = await res.json();
+  const route = json.routes?.[0];
+  if (!route) throw new Error('No route found');
+
+
+  return {
+    distance_miles: route.distance / 1609.34,
+    duration_min:   route.duration / 60,
+  };
+}

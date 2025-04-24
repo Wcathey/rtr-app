@@ -14,7 +14,9 @@ import { BarChart } from 'react-native-chart-kit';
 import dayjs from 'dayjs';
 import { getEarnings } from './earningsService';
 
-const screenWidth = Dimensions.get('window').width - 32; // account for padding
+const fullWidth = Dimensions.get('window').width - 32; // account for padding
+const chartWidth = fullWidth * 0.9;                    // shrink to hide left gutter
+const hiddenLeft = (fullWidth - chartWidth) / 2;       // amount hidden on left
 
 export default function EarningsScreen() {
   const [loading, setLoading] = useState(true);
@@ -83,25 +85,34 @@ export default function EarningsScreen() {
         {/* Weekly Earnings Bar Chart */}
         <View style={styles.chartCard}>
           <Text style={styles.dateRange}>This Week</Text>
-          <BarChart
-            data={{
-              labels: ['S','M','T','W','T','F','S'],
-              datasets: [{ data: weekdayTotals }]
-            }}
-            width={screenWidth}
-            height={180}
-            fromZero
-            chartConfig={{
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              decimalPlaces: 0,
-              color: opacity => `rgba(59, 130, 246, ${opacity})`,
-              labelColor: () => '#374151',
-              style: { borderRadius: 12 },
-              propsForBackgroundLines: { stroke: '#E5E7EB', strokeDasharray: '' }
-            }}
-            style={{ marginVertical: 8, borderRadius: 12 }}
-          />
+          <View style={styles.chartWrapper}>
+            <BarChart
+              data={{
+                labels: ['S','M','T','W','T','F','S'],
+                datasets: [{ data: weekdayTotals }],
+              }}
+              width={chartWidth}
+              height={180}
+              fromZero
+              chartConfig={{
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#ffffff',
+                decimalPlaces: 0,
+                color: opacity => `rgba(59, 130, 246, ${opacity})`,
+                labelColor: () => '#374151',
+                style: { borderRadius: 12 },
+                propsForBackgroundLines: {
+                  stroke: '#E5E7EB',
+                  strokeDasharray: '',
+                },
+              }}
+              style={{
+                marginVertical: 8,
+                borderRadius: 12,
+                paddingLeft: hiddenLeft, // push chart content right
+              }}
+            />
+          </View>
 
           {/* Stats row */}
           <View style={styles.statsRow}>
@@ -178,6 +189,9 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 8,
+  },
+  chartWrapper: {
+    alignItems: 'center',
   },
   statsRow: {
     flexDirection: 'row',

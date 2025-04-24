@@ -63,3 +63,98 @@ export async function getNearbyAssignments({ userLongitude, userLatitude, radius
   }
   return data; // array of { assignment_id, start_time, ..., distance_meters }
 }
+
+/**
+ * Claim an assignment for the current preserver.
+ * @param {number} assignmentId
+ * @returns {Promise<Object>} The updated assignment record
+ */
+export async function acceptAssignment(assignmentId) {
+  // For supabase-js v2:
+  const {
+    data: { user },
+    error: authError
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    console.error('Auth error fetching user:', authError);
+    throw authError;
+  }
+  if (!user) {
+    throw new Error('You must be logged in to accept an assignment');
+  }
+
+  const { data, error } = await supabase
+    .from('assignments')
+    .update({
+      status: 'Assigned',
+      preserver_id: user.id
+    })
+    .eq('id', assignmentId)
+    .select()   // return the updated row
+    .single();
+
+  if (error) {
+    console.error('Error accepting assignment:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Fetch the single assignment currently “Assigned” to the logged-in user.
+ * @returns {Promise<Object|null>}
+ */
+export async function getAssignedAssignment() {
+  const {
+    data: { user },
+    error: authErr
+  } = await supabase.auth.getUser();
+  if (authErr || !user) throw authErr || new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('assignments')
+    .select(`
+      id,
+      description,
+      base_price,
+      tips,
+      start_time,
+      end_time,
+      location:locations (
+        address,
+        optional_address_ext,
+        city,
+        state,
+        zipcode,
+        latitude,
+        longitude
+      )
+    `)
+    .eq('preserver_id', user.id)
+    .eq('status', 'Assigned')
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // no rows
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Mark a preserver’s assignment as “Started”
+ * @param {number} assignmentId
+ */
+export async function startAssignment(assignmentId) {
+  const { data, error } = await supabase
+    .from('assignments')
+    .update({ status: 'Started' })
+    .eq('id', assignmentId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
