@@ -38,22 +38,20 @@ export async function getOpenAssignments() {
   return data || [];
 }
 
-
 /**
  * Fetch open assignments within a given radius (in miles) of the user's location.
  * @param {number} userLongitude
  * @param {number} userLatitude
  * @param {number} radiusMiles
  */
-
 export async function getNearbyAssignments({ userLongitude, userLatitude, radiusMiles }) {
   // convert miles → meters
   const radius_m = radiusMiles * 1609.34;
 
   const { data, error } = await supabase
     .rpc('get_nearby_assignments', {
-      user_lon:  userLongitude,
-      user_lat:  userLatitude,
+      user_lon: userLongitude,
+      user_lat: userLatitude,
       radius_meters: radius_m,
     });
 
@@ -70,10 +68,9 @@ export async function getNearbyAssignments({ userLongitude, userLatitude, radius
  * @returns {Promise<Object>} The updated assignment record
  */
 export async function acceptAssignment(assignmentId) {
-  // For supabase-js v2:
   const {
     data: { user },
-    error: authError
+    error: authError,
   } = await supabase.auth.getUser();
 
   if (authError) {
@@ -88,10 +85,10 @@ export async function acceptAssignment(assignmentId) {
     .from('assignments')
     .update({
       status: 'Assigned',
-      preserver_id: user.id
+      preserver_id: user.id,
     })
     .eq('id', assignmentId)
-    .select()   // return the updated row
+    .select() // return the updated row
     .single();
 
   if (error) {
@@ -102,18 +99,40 @@ export async function acceptAssignment(assignmentId) {
   return data;
 }
 
+// ───────────────────────────────────────────────────────────────────────────────
+// Helpers & new functions for client‐aware fetches
+// ───────────────────────────────────────────────────────────────────────────────
+
 /**
- * Fetch the single assignment currently “Assigned” to the logged-in user.
- * @returns {Promise<Object|null>}
+ * Internal helper: fetch a user's first/last name and phone by their ID
+ */
+async function fetchClient(clientId) {
+  const { data: client, error } = await supabase
+    .from('users')
+    .select('first_name, last_name, phone_number')
+    .eq('id', clientId)
+    .single();
+  if (error) {
+    console.error(`Error fetching client ${clientId}:`, error);
+    throw error;
+  }
+  return client;
+}
+
+/**
+ * Fetch the single assignment currently “Assigned” or “Started” to the logged-in user,
+ * including its location and the client's basic info.
  */
 export async function getAssignedAssignment() {
+  // 1️⃣ grab the logged-in user
   const {
     data: { user },
-    error: authErr
+    error: authErr,
   } = await supabase.auth.getUser();
-  if (authErr || !user) throw authErr || new Error('Not authenticated');
+  if (authErr || !user?.id) throw authErr || new Error('Not signed in');
 
-  const { data, error } = await supabase
+  // 2️⃣ fetch the assignment row (without client join)
+  const { data: asn, error: asnErr } = await supabase
     .from('assignments')
     .select(`
       id,
@@ -122,25 +141,74 @@ export async function getAssignedAssignment() {
       tips,
       start_time,
       end_time,
+      status,
+      client_id,
+      location_id,
       location:locations (
+        id,
+        latitude,
+        longitude,
         address,
         optional_address_ext,
         city,
         state,
-        zipcode,
-        latitude,
-        longitude
+        zipcode
       )
     `)
     .eq('preserver_id', user.id)
-    .eq('status', 'Assigned')
+    .in('status', ['Assigned', 'Started'])
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; // no rows
-    throw error;
+  if (asnErr) {
+    console.error('Error fetching assigned assignment:', asnErr);
+    throw asnErr;
   }
-  return data;
+
+  // 3️⃣ fetch the client's details and attach
+  asn.client = await fetchClient(asn.client_id);
+  return asn;
+}
+
+/**
+ * Fetch a single assignment by its ID—including location and client info.
+ * Useful for a detail screen.
+ */
+export async function getAssignmentById(assignmentId) {
+  // 1️⃣ get the assignment
+  const { data: asn, error: asnErr } = await supabase
+    .from('assignments')
+    .select(`
+      id,
+      description,
+      base_price,
+      tips,
+      start_time,
+      end_time,
+      client_id,
+      location:locations (
+        id,
+        latitude,
+        longitude,
+        address,
+        optional_address_ext,
+        city,
+        state,
+        zipcode
+      )
+    `)
+    .eq('id', assignmentId)
+    .single();
+
+  if (asnErr) {
+    console.error(`Error fetching assignment ${assignmentId}:`, asnErr);
+    throw asnErr;
+  }
+
+  // 2️⃣ fetch and attach the client
+  asn.client = await fetchClient(asn.client_id);
+  return asn;
 }
 
 /**
@@ -155,6 +223,9 @@ export async function startAssignment(assignmentId) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error(`Error starting assignment ${assignmentId}:`, error);
+    throw error;
+  }
   return data;
 }

@@ -2,9 +2,15 @@ import { supabase } from '../../services/supabase';
 import { PUBLIC_MAPBOX_ACCESS_TOKEN } from '@env'; // if using dotenv
 
 async function getCoordinatesFromAddressMapbox(addressString) {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-    addressString
-  )}.json?access_token=${PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+  // 🔍 Limit to one U.S. address result
+  const url = [
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/`,
+    `${encodeURIComponent(addressString)}.json`,
+    `?access_token=${PUBLIC_MAPBOX_ACCESS_TOKEN}`,
+    `&limit=1`,
+    `&types=address`,
+    `&country=us`
+  ].join('');
 
   try {
     const response = await fetch(url);
@@ -41,7 +47,7 @@ export async function createLocation({ address, optional_address_ext = null, cit
 
     const fullAddress = `${address}${optional_address_ext ? ` ${optional_address_ext}` : ''}, ${city}, ${state} ${zipcode}`;
 
-    // 🔍 Get coordinates using Mapbox
+    // 🔍 Get coordinates using Mapbox (now limited & typed)
     const { latitude, longitude } = await getCoordinatesFromAddressMapbox(fullAddress);
 
     // 📍 Insert into Supabase
@@ -67,7 +73,6 @@ export async function createLocation({ address, optional_address_ext = null, cit
   }
 }
 
-
 /**
  * Get driving distance (miles) and duration (minutes) between two points.
  * @param {number} lat1
@@ -90,9 +95,21 @@ export async function getDrivingRoute(lat1, lon1, lat2, lon2) {
   const route = json.routes?.[0];
   if (!route) throw new Error('No route found');
 
-
   return {
     distance_miles: route.distance / 1609.34,
     duration_min:   route.duration / 60,
   };
+}
+
+export async function getRoute(origin, destination) {
+  const url =
+  `https://api.mapbox.com/directions/v5/mapbox/driving/` +
+  `${origin[0]},${origin[1]};${dest[0]},${dest[1]}` +
+  `?overview=full&geometries=geojson&steps=true` +
+  `&access_token=${PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!json.routes || !json.routes.length) throw new Error('No route');
+  return json.routes[0]; // contains .geometry and .legs[0].steps
 }

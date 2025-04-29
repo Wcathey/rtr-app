@@ -4,10 +4,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons }                 from '@expo/vector-icons';
 import CustomHeader                 from '../components/CustomHeader';
 import AssignmentsStack from './AssignmentsStack';
-import MapScreen         from '../features/map/MapScreen';
 import EarningsScreen    from '../features/earnings/EarningsScreen';
 import SettingsScreen    from '../features/settings/SettingsScreen';
 import ProfileScreen     from '../features/profile/ProfileScreen';
+import MapStack from './MapStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -33,10 +33,10 @@ export default function PreserverTabs() {
     >
       <Tab.Screen
         name="Map"
-        component={MapScreen}
+        component={MapStack}
         options={{ headerShown: false }}
       />
-       <Tab.Screen
+      <Tab.Screen
         name="Assignments"
         component={AssignmentsStack}
         options={{ headerShown: false }}
