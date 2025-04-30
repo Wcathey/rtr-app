@@ -1,5 +1,7 @@
+// components/LoadingScreen.js
+
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,60 +14,81 @@ import Animated, {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function LoadingScreen({ onComplete }) {
-  const boxDrop = useSharedValue(-100);
-  const paperDrop1 = useSharedValue(-80);
-  const paperDrop2 = useSharedValue(-80);
-  const paperDrop3 = useSharedValue(-80);
+  // Shared values for each piece
+  const boxDrop     = useSharedValue(-100);
+  const paper1Drop  = useSharedValue(-80);
+  const paper2Drop  = useSharedValue(-80);
+  const paper3Drop  = useSharedValue(-80);
   const textOpacity = useSharedValue(0);
   const screenOpacity = useSharedValue(1);
 
   useEffect(() => {
-    boxDrop.value = withTiming(0, { duration: 800, easing: Easing.bounce });
+    // 1️⃣ Drop the box
+    boxDrop.value = withTiming(0, {
+      duration: 800,
+      easing: Easing.bounce,
+    });
 
-    paperDrop1.value = withDelay(1000, withTiming(0, { duration: 400 }));
-    paperDrop2.value = withDelay(1400, withTiming(0, { duration: 400 }));
-    paperDrop3.value = withDelay(1800, withTiming(0, { duration: 400 }));
+    // 2️⃣ Stagger the pages
+    paper1Drop.value = withDelay(
+      1000,
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) })
+    );
+    paper2Drop.value = withDelay(
+      1400,
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) })
+    );
+    paper3Drop.value = withDelay(
+      1800,
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) })
+    );
 
-    textOpacity.value = withDelay(2400, withTiming(1, { duration: 600 }));
+    // 3️⃣ Fade in the title
+    textOpacity.value = withDelay(
+      2400,
+      withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) })
+    );
 
-    // TEMP: Remove animated fade-out and directly complete after 4s
-    runOnJS(() => {
-      setTimeout(() => {
-        console.log('✅ Manual fallback → calling onComplete()');
-        onComplete?.();
-      }, 4000);
-    })();
+    // 4️⃣ After everything is visible, fade out the entire screen
+    screenOpacity.value = withDelay(
+      3200,
+      withTiming(
+        0,
+        { duration: 500, easing: Easing.inOut(Easing.ease) },
+        (finished) => {
+          if (finished) {
+            // once fade-out completes, call onComplete on the JS thread
+            runOnJS(onComplete)();
+          }
+        }
+      )
+    );
   }, []);
 
-
-
+  // Animated styles
   const containerStyle = useAnimatedStyle(() => ({
     opacity: screenOpacity.value,
   }));
-
   const boxStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: boxDrop.value }],
   }));
-
   const paperStyle1 = useAnimatedStyle(() => ({
-    transform: [{ translateY: paperDrop1.value }],
+    transform: [{ translateY: paper1Drop.value }],
   }));
-
   const paperStyle2 = useAnimatedStyle(() => ({
-    transform: [{ translateY: paperDrop2.value }],
+    transform: [{ translateY: paper2Drop.value }],
   }));
-
   const paperStyle3 = useAnimatedStyle(() => ({
-    transform: [{ translateY: paperDrop3.value }],
+    transform: [{ translateY: paper3Drop.value }],
   }));
-
   const textStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
   }));
 
-  const BOX_WIDTH = SCREEN_WIDTH * 0.5;
+  // Layout constants
+  const BOX_WIDTH   = SCREEN_WIDTH * 0.5;
   const PAPER_WIDTH = BOX_WIDTH * 0.85;
-  const FONT_WIDTH = SCREEN_WIDTH * 0.9;
+  const FONT_WIDTH  = SCREEN_WIDTH * 0.9;
 
   return (
     <Animated.View style={[styles.container, containerStyle]}>
@@ -112,7 +135,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     marginBottom: 40,
-    fontSize: 60,
   },
   box: {
     backgroundColor: '#ffffff',

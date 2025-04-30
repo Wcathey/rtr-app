@@ -229,3 +229,18 @@ export async function startAssignment(assignmentId) {
   }
   return data;
 }
+
+export async function submitAssignmentForReview(assignmentId) {
+  const { data, error } = await supabase
+    .from('assignments')
+    .update({ status: 'Submitted' })
+    .eq('id', assignmentId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error starting assignment ${assignmentId}:`, error);
+    throw error;
+  }
+  return data;
+}

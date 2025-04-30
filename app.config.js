@@ -16,8 +16,12 @@ export default ({ config }) => ({
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.wcathey.rtr",
+      infoPlist: {
+        NSCameraUsageDescription: 'We need access to your camera to scan documents.',
+      },
     },
     android: {
+      permissions: ['CAMERA'],
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -38,6 +42,22 @@ export default ({ config }) => ({
           locationWhenInUsePermission: "Show current location on map.",
         },
       ],
+      [
+        'react-native-document-scanner-plugin',
+        {
+          cameraPermission:
+            'We need camera access, so you can scan documents',
+        },
+      ],
+      [
+        "expo-camera",
+        {
+          cameraPermission:
+          "Allow this app to use your camera for document scanning"
+
+        }
+      ],
+      
       "expo-dev-client", // Add the expo-dev-client plugin
     ],
     extra: {
